@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Cliente {
+  id        Int     @id @default(autoincrement())
+  nome      String
+  email     String  @unique
+  status    Boolean
+  ativos    Ativo[]
+}
+
+model Ativo {
+  id        Int     @id @default(autoincrement())
+  nome      String
+  valor     Float
+  clienteId Int
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+}
