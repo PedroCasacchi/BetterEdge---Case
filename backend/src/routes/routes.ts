@@ -33,74 +33,76 @@ export default function routes(app: FastifyInstance): void {
   // Rota para criar um novo cliente
   app.post("/clientes", async (req, res) => {
     try {
-      // Validando os dados de entrada
       const { nome, email } = createClienteSchema.parse(req.body);
 
+      const existingCliente = await prisma.cliente.findUnique({
+        where: { email },
+      });
+      if (existingCliente) {
+        return res.status(400).send({ error: "Email já está em uso" });
+      }
+
       const cliente = await prisma.cliente.create({
-        data: {
-          nome,
-          email,
-          status: true, // Status ativo por padrão
-        },
-        include: {
-          ativos: true,
-        },
+        data: { nome, email, status: true },
+        include: { ativos: true },
       });
 
       res.status(201).send(cliente);
-    } catch (err) {
-      res.status(400).send(err);
+    } catch (err: any) {
+      if (err.code === "P2002") {
+        return res.status(400).send({ error: "Email já está em uso" });
+      }
+      res
+        .status(500)
+        .send({ error: "Erro interno do servidor", details: err.message });
     }
   });
 
   // Rota para listar todos os clientes
   app.get("/clientes", async (req, res) => {
     const clientes = await prisma.cliente.findMany({
-      include: {
-        ativos: true,
-      },
-      orderBy: {
-        id: "desc",
-      },
+      include: { ativos: true },
+      orderBy: { id: "desc" },
     });
     return res.status(200).send(clientes);
   });
 
   // Rota para deletar um cliente
   app.delete("/clientes/:id", async (req, res) => {
-    const { id } = req.params as { id: string }; // Garantindo que 'id' seja uma string
-
-    await prisma.cliente.delete({
-      where: {
-        id: parseInt(id),
-      },
-    });
-
+    const { id } = req.params as { id: string };
+    await prisma.cliente.delete({ where: { id: parseInt(id) } });
     return res.status(200).send({ success: "Cliente deletado com sucesso" });
   });
 
   // Rota para atualizar um cliente
   app.put("/clientes/:id", async (req, res) => {
     try {
-      const { id } = req.params as { id: string }; // Garantindo que 'id' seja uma string
+      const { id } = req.params as { id: string };
       const { nome, email } = updateClienteSchema.parse(req.body);
 
+      if (email) {
+        const existingCliente = await prisma.cliente.findUnique({
+          where: { email },
+        });
+        if (existingCliente && existingCliente.id !== parseInt(id)) {
+          return res.status(400).send({ error: "Email já está em uso" });
+        }
+      }
+
       const cliente = await prisma.cliente.update({
-        where: {
-          id: parseInt(id),
-        },
-        data: {
-          nome,
-          email,
-        },
-        include: {
-          ativos: true,
-        },
+        where: { id: parseInt(id) },
+        data: { nome, email },
+        include: { ativos: true },
       });
 
       return res.status(200).send(cliente);
-    } catch (err) {
-      return res.status(400).send(err);
+    } catch (err: any) {
+      if (err.code === "P2002") {
+        return res.status(400).send({ error: "Email já está em uso" });
+      }
+      return res
+        .status(500)
+        .send({ error: "Erro interno do servidor", details: err.message });
     }
   });
 
@@ -123,17 +125,16 @@ export default function routes(app: FastifyInstance): void {
     return res.status(200).send(cliente);
   });
 
-  // Rota para adicionar ativo no cliente
-  app.put("/clientes/:id/ativos", async (req, res) => {
-    const { id } = req.params as { id: string }; // Garantindo que 'id' seja uma string
-    const { ativoId } = req.body as { ativoId: string }; // Garantindo que 'ativoId' seja uma string
+  // Rota para ativar um cliente
+  app.put("/clientes/ativar/:id", async (req, res) => {
+    const { id } = req.params as { id: string };
 
     const cliente = await prisma.cliente.update({
-      where: { id: parseInt(id) },
+      where: {
+        id: parseInt(id),
+      },
       data: {
-        ativos: {
-          connect: { id: parseInt(ativoId) },
-        },
+        status: true, // Ativar o cliente
       },
       include: {
         ativos: true,
@@ -143,23 +144,29 @@ export default function routes(app: FastifyInstance): void {
     return res.status(200).send(cliente);
   });
 
+  // Rota para adicionar ativo no cliente
+  app.put("/clientes/:id/ativos", async (req, res) => {
+    const { id } = req.params as { id: string };
+    const { ativoId } = req.body as { ativoId: string };
+    const cliente = await prisma.cliente.update({
+      where: { id: parseInt(id) },
+      data: { ativos: { connect: { id: parseInt(ativoId) } } },
+      include: { ativos: true },
+    });
+    return res.status(200).send(cliente);
+  });
+
   // Rota para criar um novo ativo para o cliente
   app.post("/ativos/:id", async (req, res) => {
     try {
       const { nome, valorAtual, clienteId } = createAtivoSchema.parse(req.body);
-
       const ativo = await prisma.ativo.create({
         data: {
           nome,
-          valor: valorAtual, // corrigido para 'valor' de acordo com o schema
-          cliente: {
-            connect: {
-              id: clienteId,
-            },
-          },
+          valor: valorAtual,
+          cliente: { connect: { id: clienteId } },
         },
       });
-
       return res.status(201).send(ativo);
     } catch (err) {
       return res.status(400).send(err);
@@ -168,25 +175,14 @@ export default function routes(app: FastifyInstance): void {
 
   // Rota para deletar ativos
   app.delete("/ativos/:id", async (req, res) => {
-    const { id } = req.params as { id: string }; // Garantindo que 'id' seja uma string
-
-    await prisma.ativo.delete({
-      where: {
-        id: parseInt(id),
-      },
-    });
-
+    const { id } = req.params as { id: string };
+    await prisma.ativo.delete({ where: { id: parseInt(id) } });
     return res.status(200).send({ success: "Ativo deletado com sucesso" });
   });
 
   // Rota para listar todos os ativos
   app.get("/ativos", async (req, res) => {
-    const ativos = await prisma.ativo.findMany({
-      orderBy: {
-        id: "desc",
-      },
-    });
-
+    const ativos = await prisma.ativo.findMany({ orderBy: { id: "desc" } });
     return res.status(200).send(ativos);
   });
 }
