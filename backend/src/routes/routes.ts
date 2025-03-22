@@ -180,9 +180,18 @@ export default function routes(app: FastifyInstance): void {
     return res.status(200).send({ success: "Ativo deletado com sucesso" });
   });
 
-  // Rota para listar todos os ativos
+  // Rota para listar todos os ativos com o cliente associado
   app.get("/ativos", async (req, res) => {
-    const ativos = await prisma.ativo.findMany({ orderBy: { id: "desc" } });
+    const ativos = await prisma.ativo.findMany({
+      select: {
+        id: true,
+        nome: true,
+        valor: true,
+        clienteId: true, // Apenas o ID do cliente
+      },
+      orderBy: { id: "desc" },
+    });
+
     return res.status(200).send(ativos);
   });
 }
