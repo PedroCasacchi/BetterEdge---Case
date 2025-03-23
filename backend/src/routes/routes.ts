@@ -30,7 +30,7 @@ export default function routes(app: FastifyInstance): void {
     res.send("API está funcionando!");
   });
 
-  // Rota para criar um novo cliente
+  // Rota pra criar novo cliente
   app.post("/clientes", async (req, res) => {
     try {
       const { nome, email } = createClienteSchema.parse(req.body);
@@ -58,7 +58,7 @@ export default function routes(app: FastifyInstance): void {
     }
   });
 
-  // Rota para listar todos os clientes
+  // Rota pra listar os clientes
   app.get("/clientes", async (req, res) => {
     const clientes = await prisma.cliente.findMany({
       include: { ativos: true },
@@ -74,7 +74,7 @@ export default function routes(app: FastifyInstance): void {
     return res.status(200).send({ success: "Cliente deletado com sucesso" });
   });
 
-  // Rota para atualizar um cliente
+  // Rota pra atualizar um cliente
   app.put("/clientes/:id", async (req, res) => {
     try {
       const { id } = req.params as { id: string };
@@ -106,7 +106,7 @@ export default function routes(app: FastifyInstance): void {
     }
   });
 
-  // Rota para inativar um cliente
+  // Rota pra inativar um cliente
   app.put("/clientes/inativar/:id", async (req, res) => {
     const { id } = req.params as { id: string }; // Garantindo que 'id' seja uma string
 
@@ -125,7 +125,7 @@ export default function routes(app: FastifyInstance): void {
     return res.status(200).send(cliente);
   });
 
-  // Rota para ativar um cliente
+  // Rota pra ativar um cliente
   app.put("/clientes/ativar/:id", async (req, res) => {
     const { id } = req.params as { id: string };
 
@@ -144,7 +144,7 @@ export default function routes(app: FastifyInstance): void {
     return res.status(200).send(cliente);
   });
 
-  // Rota para adicionar ativo no cliente
+  // Rota pra adicionar ativo no cliente
   app.put("/clientes/:id/ativos", async (req, res) => {
     const { id } = req.params as { id: string };
     const { ativoId } = req.body as { ativoId: string };
@@ -156,7 +156,7 @@ export default function routes(app: FastifyInstance): void {
     return res.status(200).send(cliente);
   });
 
-  // Rota para criar um novo ativo para o cliente
+  // Rota pra criar novo ativo pro cliente
   app.post("/ativos/:id", async (req, res) => {
     try {
       const { nome, valorAtual, clienteId } = createAtivoSchema.parse(req.body);
@@ -173,14 +173,14 @@ export default function routes(app: FastifyInstance): void {
     }
   });
 
-  // Rota para deletar ativos
+  // Rota pra deletar ativos
   app.delete("/ativos/:id", async (req, res) => {
     const { id } = req.params as { id: string };
     await prisma.ativo.delete({ where: { id: parseInt(id) } });
     return res.status(200).send({ success: "Ativo deletado com sucesso" });
   });
 
-  // Rota para listar todos os ativos com o cliente associado
+  // Rota pra listar os ativos com o cliente associado
   app.get("/ativos", async (req, res) => {
     const ativos = await prisma.ativo.findMany({
       select: {
