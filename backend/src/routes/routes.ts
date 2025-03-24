@@ -108,7 +108,7 @@ export default function routes(app: FastifyInstance): void {
 
   // Rota pra inativar um cliente
   app.put("/clientes/inativar/:id", async (req, res) => {
-    const { id } = req.params as { id: string }; // Garantindo que 'id' seja uma string
+    const { id } = req.params as { id: string };
 
     const cliente = await prisma.cliente.update({
       where: {
@@ -187,7 +187,7 @@ export default function routes(app: FastifyInstance): void {
         id: true,
         nome: true,
         valor: true,
-        clienteId: true, // Apenas o ID do cliente
+        clienteId: true, // Id do cliente
       },
       orderBy: { id: "desc" },
     });
